@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swift/SwiftUI — Learning Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #070c18;
+      --surface:     #0c1526;
+      --surface2:    #111f35;
+      --surface3:    #162844;
+      --border:      #1c3355;
+      --border2:     #2a4a70;
+      --text:        #b8cce0;
+      --text-dim:    #4a6a8a;
+      --text-bright: #ddeeff;
+      --green:       #00e87a;
+      --cyan:        #00ccff;
+      --blue:        #4a8fff;
+      --red:         #ff3344;
+      --orange:      #ff8800;
+      --yellow:      #ffcc00;
+      --code-bg:     #140a20;
+      --code-text:   #ff7b9c;
+      --code-border: #380d50;
+      --l0-fg: #ff3344; --l0-bg: rgba(255,51,68,0.12);
+      --l1-fg: #ff8800; --l1-bg: rgba(255,136,0,0.12);
+      --l2-fg: #ffcc00; --l2-bg: rgba(255,204,0,0.12);
+      --l3-fg: #00e87a; --l3-bg: rgba(0,232,122,0.12);
+      --l4-fg: #00ccff; --l4-bg: rgba(0,204,255,0.12);
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,204,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,204,255,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      position: relative;
+      z-index: 1;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 24px 100px;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────────────────────── */
+    #header {
+      margin-bottom: 28px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .header-left {}
+
+    .header-prompt {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+
+    .header-prompt .pc { color: var(--green); }
+    .header-prompt .path { color: var(--cyan); }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-bright);
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+
+    .header-title .hl { color: var(--cyan); }
+
+    .header-stats {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 10.5px;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+    }
+
+    .stat-val { font-weight: 700; }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+
+    .btn-sm {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 5px 10px;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+
+    .btn-sm:hover {
+      color: var(--cyan);
+      border-color: var(--cyan);
+      background: rgba(0,204,255,0.05);
+    }
+
+    .btn-sm.danger:hover {
+      color: var(--red);
+      border-color: var(--red);
+      background: rgba(255,51,68,0.05);
+    }
+
+    /* ── PROGRESS BAR ───────────────────────────────────────────────────── */
+    #progress-wrap {
+      margin-bottom: 32px;
+      padding: 16px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .progress-title {
+      font-size: 9.5px;
+      letter-spacing: 0.14em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .progress-title .slash { color: var(--cyan); opacity: 0.6; }
+
+    #progress-bar {
+      height: 20px;
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #050a14;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .prog-group {
+      display: flex;
+      gap: 1px;
+      position: relative;
+    }
+
+    .prog-seg {
+      flex: 1;
+      cursor: pointer;
+      transition: filter 0.15s, transform 0.1s;
+      min-width: 4px;
+    }
+
+    .prog-seg:hover {
+      filter: brightness(1.6) saturate(1.3);
+      transform: scaleY(1.1);
+    }
+
+    .progress-text {
+      margin-top: 10px;
+      font-size: 10px;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .progress-ascii {
+      font-size: 11px;
+      letter-spacing: -0.04em;
+    }
+
+    .progress-legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .leg {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 9.5px;
+    }
+
+    .leg-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── TOOLTIP ────────────────────────────────────────────────────────── */
+    #tooltip {
+      position: fixed;
+      background: #08121f;
+      border: 1px solid var(--border2);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 11px;
+      line-height: 1.4;
+      padding: 6px 10px;
+      pointer-events: none;
+      z-index: 9999;
+      max-width: 320px;
+      display: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    #tooltip .tt-section { color: var(--cyan); font-size: 9.5px; letter-spacing: 0.06em; margin-bottom: 2px; }
+
+    /* ── SECTIONS LIST ──────────────────────────────────────────────────── */
+    #sections-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .section-card.drag-target {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px var(--cyan), 0 0 24px rgba(0,204,255,0.08);
+    }
+
+    .section-card.dragging { opacity: 0.45; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+
+    .section-header:hover { background: var(--surface3); }
+
+    .section-card.collapsed .section-items { display: none; }
+    .section-card.collapsed .s-arrow { transform: rotate(-90deg); }
+
+    .s-drag {
+      color: var(--text-dim);
+      opacity: 0.4;
+      font-size: 15px;
+      line-height: 1;
+      cursor: grab;
+      flex-shrink: 0;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    .s-drag:hover { opacity: 1; color: var(--cyan); }
+    .s-drag:active { cursor: grabbing; }
+
+    .s-num {
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      opacity: 0.6;
+      flex-shrink: 0;
+      min-width: 24px;
+    }
+
+    .s-title {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-bright);
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }
+
+    .s-title-input {
+      flex: 1;
+      background: #0a1422;
+      border: 1px solid var(--cyan);
+      border-radius: 3px;
+      color: var(--text-bright);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      padding: 1px 7px;
+      outline: none;
+      box-shadow: 0 0 8px rgba(0,204,255,0.15);
+    }
+
+    .s-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .s-count {
+      font-size: 9.5px;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+      margin-right: 4px;
+    }
+
+    .s-arrow {
+      color: var(--text-dim);
+      font-size: 12px;
+      transition: transform 0.2s;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 3px 5px;
+      border-radius: 3px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+      font-family: inherit;
+    }
+
+    .icon-btn:hover { color: var(--cyan); background: rgba(0,204,255,0.08); }
+    .icon-btn.del:hover { color: var(--red); background: rgba(255,51,68,0.08); }
+
+    /* ── ITEMS ──────────────────────────────────────────────────────────── */
+    .section-items { padding: 2px 0; }
+
+    .item-row {
+      border-bottom: 1px solid rgba(28,51,85,0.45);
+      transition: background 0.1s;
+    }
+
+    .item-row:last-child { border-bottom: none; }
+
+    .item-row.drop-above { border-top: 2px solid var(--cyan); }
+    .item-row.item-dragging { opacity: 0.4; }
+
+    .item-main {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .item-main:hover { background: rgba(255,255,255,0.018); }
+
+    .i-drag {
+      color: var(--text-dim);
+      opacity: 0.25;
+      font-size: 13px;
+      cursor: grab;
+      flex-shrink: 0;
+      margin-top: 2px;
+      line-height: 1;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    .item-main:hover .i-drag { opacity: 0.6; }
+    .i-drag:hover { opacity: 1 !important; color: var(--cyan); }
+    .i-drag:active { cursor: grabbing; }
+
+    .i-bullet {
+      color: var(--text-dim);
+      font-size: 10px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+
+    .i-text {
+      flex: 1;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    .i-text .ct {
+      background: var(--code-bg);
+      color: var(--code-text);
+      border: 1px solid var(--code-border);
+      border-radius: 3px;
+      padding: 0 4px;
+      font-size: 11.5px;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .i-text-input {
+      flex: 1;
+      background: #090f1c;
+      border: 1px solid var(--cyan);
+      border-radius: 4px;
+      color: var(--text-bright);
+      font-family: inherit;
+      font-size: 12.5px;
+      line-height: 1.55;
+      padding: 4px 8px;
+      outline: none;
+      resize: vertical;
+      min-height: 38px;
+      box-shadow: 0 0 10px rgba(0,204,255,0.1);
+    }
+
+    .i-badge {
+      flex-shrink: 0;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid;
+      margin-top: 2px;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .i-arrow {
+      color: var(--text-dim);
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: transform 0.2s, color 0.15s;
+    }
+
+    .item-row.expanded .i-arrow { transform: rotate(90deg); color: var(--cyan); }
+
+    /* ── EXPANDED DETAIL ────────────────────────────────────────────────── */
+    .item-detail {
+      display: none;
+      padding: 12px 14px 14px 42px;
+      border-top: 1px solid rgba(28,51,85,0.5);
+      background: rgba(0,0,0,0.22);
+    }
+
+    .item-row.expanded .item-detail { display: block; }
+
+    .level-picker {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .lv-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      padding: 5px 12px;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+
+    .lv-btn:hover { border-color: var(--border2); color: var(--text); }
+
+    .lv-btn.active {
+      font-weight: 800;
+      color: #000 !important;
+    }
+
+    .notes-lbl {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .notes-lbl .slash { color: var(--cyan); opacity: 0.5; }
+
+    textarea.notes {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      line-height: 1.65;
+      padding: 9px 11px;
+      resize: vertical;
+      min-height: 72px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    textarea.notes:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px rgba(0,204,255,0.08);
+    }
+
+    textarea.notes::placeholder { color: var(--text-dim); opacity: 0.4; }
+
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 9px;
+      justify-content: flex-end;
+    }
+
+    /* ── ADD SECTION ────────────────────────────────────────────────────── */
+    #add-section-wrap {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+    }
+
+    #btn-add-section {
+      background: none;
+      border: 1px dashed var(--border2);
+      border-radius: 7px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      padding: 11px 28px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+
+    #btn-add-section:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(0,204,255,0.04);
+      box-shadow: 0 0 24px rgba(0,204,255,0.06);
+    }
+
+    /* ── BLINK ──────────────────────────────────────────────────────────── */
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .blink { animation: blink 1.1s step-end infinite; }
+
+    /* ── SCROLLBAR ──────────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a6090; }
+
+    /* ── MODAL ──────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 24px 28px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.6);
+    }
+
+    .modal h3 { color: var(--text-bright); font-size: 14px; margin-bottom: 8px; }
+    .modal p { color: var(--text-dim); font-size: 12px; margin-bottom: 16px; line-height: 1.6; }
+    .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div id="header"></div>
+  <div id="progress-wrap"></div>
+  <div id="sections-list"></div>
+  <div id="add-section-wrap">
+    <button id="btn-add-section" onclick="addSection()">⊕ &nbsp;ADD SECTION</button>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'swift-tracker-v1';
+
+const LEVELS     = ['NOT STARTED', 'FAMILIAR', 'PRACTICING', 'CONFIDENT', 'MASTERED'];
+const LV_COLORS  = ['#ff3344',     '#ff8800',  '#ffcc00',    '#00e87a',   '#00ccff'];
+const LV_BG      = ['rgba(255,51,68,0.13)', 'rgba(255,136,0,0.13)', 'rgba(255,204,0,0.13)', 'rgba(0,232,122,0.13)', 'rgba(0,204,255,0.13)'];
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function item(text) { return { id: uid(), text, level: 0, notes: '' }; }
+
+const DEFAULT_DATA = { sections: [
+  { id: uid(), title: 'How an iOS App Works', collapsed: false, items: [
+    item('App lifecycle: `App` protocol, `@main` entry point, `Scene` and `WindowGroup`'),
+    item('App states: active, inactive, background, suspended'),
+    item('`ScenePhase` environment value for reacting to state changes'),
+    item('Info.plist essentials (permissions, bundle config)'),
+  ]},
+  { id: uid(), title: 'Swift Language Essentials', collapsed: false, items: [
+    item('Value types vs reference types (`struct` vs `class`)'),
+    item('Optionals, guard, if-let'),
+    item('Protocols, extensions, generics'),
+    item('Closures and trailing closure syntax'),
+    item('`async` / `await` and structured concurrency (`Task`, `TaskGroup`, actors)'),
+    item('Swift Package Manager (SPM): adding dependencies via Xcode (`File > Add Package Dependencies`), `Package.swift` for library projects, versioning rules (exact, range, branch)'),
+  ]},
+  { id: uid(), title: 'SwiftUI – UI Fundamentals', collapsed: false, items: [
+    item('Declarative syntax: `View` protocol, `body` property'),
+    item('Common views: `Text`, `Image`, `Button`, `TextField`, `Toggle`, `List`'),
+    item('Layout: `VStack`, `HStack`, `ZStack`, `LazyVGrid`, `GeometryReader`'),
+    item('Modifiers: `.padding()`, `.frame()`, `.background()`, `.overlay()`'),
+    item('Conditional rendering, `ForEach`, `Group`'),
+  ]},
+  { id: uid(), title: 'State & Data Flow', collapsed: false, items: [
+    item('`@State`, `@Binding` – local / child state'),
+    item('`@StateObject`, `@ObservedObject`, `@Published` – observable objects'),
+    item('`@EnvironmentObject`, `@Environment` – dependency injection'),
+    item('`@Observable` macro (iOS 17+) as modern replacement'),
+  ]},
+  { id: uid(), title: 'Previews', collapsed: false, items: [
+    item('`#Preview` macro (Xcode 15+) for live canvas previews'),
+    item('Providing mock data / mock view models for previews'),
+    item('Preview on multiple devices and dark/light mode'),
+  ]},
+  { id: uid(), title: 'Navigation', collapsed: false, items: [
+    item('`NavigationStack` and `NavigationLink` (value-based)'),
+    item('Programmatic navigation with `NavigationPath`'),
+    item('`TabView` for tab-based navigation'),
+    item('`.sheet()`, `.fullScreenCover()`, `.alert()` for modal presentation'),
+    item('Deep linking basics'),
+  ]},
+  { id: uid(), title: 'App Architecture – MVVM', collapsed: false, items: [
+    item('View – declarative UI, binds to ViewModel'),
+    item('ViewModel – `@Observable` or `ObservableObject`, holds UI state and logic'),
+    item('Model – plain data types (`Codable` structs)'),
+    item('Keep Views thin; business logic lives in ViewModel'),
+    item('Dependency injection via init or `@Environment`'),
+  ]},
+  { id: uid(), title: 'Networking', collapsed: false, items: [
+    item('`URLSession` async/await: `let (data, response) = try await URLSession.shared.data(from: url)`'),
+    item('JSON decoding with `JSONDecoder` and `Codable`'),
+    item('Error handling: network errors, HTTP status codes, decoding failures'),
+    item('Building a lightweight API client / service layer'),
+    item('Handling loading / error / success states in the ViewModel'),
+  ]},
+  { id: uid(), title: 'Push Notifications', collapsed: false, items: [
+    item('Register for remote notifications: `UNUserNotificationCenter.requestAuthorization`'),
+    item('Obtain device token via `UIApplication.shared.registerForRemoteNotifications()`'),
+    item('APNs flow: device token → your server → APNs'),
+    item('Handle foreground notifications with `UNUserNotificationCenterDelegate`'),
+    item('Payload structure: `aps { alert, badge, sound }`'),
+  ]},
+  { id: uid(), title: 'Location Services', collapsed: false, items: [
+    item('`CoreLocation` framework: `CLLocationManager`'),
+    item('Request permission: `.requestWhenInUseAuthorization()` / `.requestAlwaysAuthorization()`'),
+    item('One-shot location vs continuous updates'),
+    item('`CLLocationManagerDelegate` callbacks'),
+    item('Privacy keys in Info.plist: `NSLocationWhenInUseUsageDescription`'),
+  ]},
+  { id: uid(), title: 'Local Data Storage', collapsed: false, items: [
+    item('`UserDefaults` – small key-value preferences (settings, flags)'),
+    item('`@AppStorage` – SwiftUI property wrapper backed by UserDefaults'),
+    item('File system: read/write files to app sandbox (`FileManager`, documents directory)'),
+    item('`SwiftData` (iOS 17+) – declarative persistence with `@Model`, `@Query`, `ModelContainer`'),
+    item('`Core Data` – legacy but still widely used ORM-style persistence'),
+    item('Keychain – secure storage for tokens, passwords, credentials'),
+    item('When to use what: UserDefaults (tiny prefs) → SwiftData/CoreData (structured data) → Keychain (secrets)'),
+  ]},
+  { id: uid(), title: 'Background Services', collapsed: false, items: [
+    item('Background modes in Xcode capabilities (audio, location, fetch, processing)'),
+    item('`BGTaskScheduler` for background app refresh and processing tasks'),
+    item('Background URL sessions (`URLSessionConfiguration.background`)'),
+    item('Significant location change monitoring (low-power background location)'),
+    item('Constraints: iOS aggressively manages background execution; keep tasks short'),
+  ]},
+]};
+
+// ════════════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════════════
+let state     = loadState();
+let expanded  = new Set();   // item ids currently expanded
+let editSec   = null;        // section id being inline-edited
+let editItem  = null;        // item id being inline-edited
+let dragInfo  = null;        // { type: 'section'|'item', id, sectionId? }
+
+function loadState() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) return JSON.parse(s);
+  } catch(_) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DATA));
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function stats() {
+  const all   = state.sections.flatMap(s => s.items);
+  const total = all.length;
+  const byLv  = [0,0,0,0,0];
+  all.forEach(i => byLv[i.level]++);
+  const confident = byLv[3] + byLv[4];
+  const pct = total ? Math.round(confident / total * 100) : 0;
+  return { total, byLv, confident, mastered: byLv[4], pct };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+function renderText(t) {
+  return t
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/`([^`]+)`/g, '<span class="ct">$1</span>');
+}
+
+function captureNotes() {
+  document.querySelectorAll('textarea.notes[data-sid][data-iid]').forEach(ta => {
+    const sec = state.sections.find(s => s.id === ta.dataset.sid);
+    if (!sec) return;
+    const itm = sec.items.find(i => i.id === ta.dataset.iid);
+    if (itm) itm.notes = ta.value;
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════════════════════
+function render() {
+  renderHeader();
+  renderBar();
+  renderSections();
+}
+
+function renderHeader() {
+  const st = stats();
+  const pctColor = st.pct > 70 ? '#00e87a' : st.pct > 35 ? '#ffcc00' : '#ff8800';
+  document.getElementById('header').innerHTML = `
+    <div class="header-left">
+      <div class="header-prompt">
+        <span class="pc">▸</span>&nbsp;
+        <span class="path">~/learning/swift-swiftui</span>&nbsp;&nbsp;<span class="blink" style="color:var(--green)">_</span>
+      </div>
+      <div class="header-title">iOS Development — <span class="hl">Swift / SwiftUI</span></div>
+      <div class="header-stats">
+        <span>TOPICS&nbsp;<span class="stat-val" style="color:var(--text)">${st.total}</span></span>
+        <span style="color:var(--text-dim)">·</span>
+        <span>CONFIDENT+&nbsp;<span class="stat-val" style="color:var(--green)">${st.confident}</span></span>
+        <span style="color:var(--text-dim)">·</span>
+        <span>MASTERED&nbsp;<span class="stat-val" style="color:var(--cyan)">${st.mastered}</span></span>
+        <span style="color:var(--text-dim)">·</span>
+        <span>COMPLETE&nbsp;<span class="stat-val" style="color:${pctColor}">${st.pct}%</span></span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-sm" onclick="exportJSON()" title="Export data as JSON">↓ export</button>
+      <button class="btn-sm" onclick="importJSON()" title="Import JSON backup">↑ import</button>
+      <button class="btn-sm danger" onclick="resetData()" title="Reset everything to defaults">⟳ reset</button>
+    </div>
+  `;
+}
+
+function renderBar() {
+  const st = stats();
+  const total = st.total;
+
+  const groups = state.sections.map((sec, si) => {
+    const segs = sec.items.map(itm => {
+      const c = LV_COLORS[itm.level];
+      const label = sec.title + '\n' + itm.text.replace(/`([^`]+)`/g,'$1').slice(0,60);
+      return `<div class="prog-seg" style="background:${c};flex:${1}"
+                   data-label="${label.replace(/"/g,'&quot;')}"
+                   data-sid="${sec.id}" data-iid="${itm.id}"></div>`;
+    }).join('');
+    return `<div class="prog-group" style="flex:${sec.items.length};gap:1px">${segs}</div>`;
+  }).join('<div style="width:3px;flex-shrink:0"></div>');
+
+  const filled  = Math.round(st.pct / 5);
+  const ascii   = '<span style="color:var(--cyan)">' + '█'.repeat(filled) + '</span>' +
+                  '<span style="color:var(--border2)">' + '░'.repeat(20 - filled) + '</span>';
+  const legend  = LEVELS.map((l,i) =>
+    `<span class="leg"><span class="leg-dot" style="background:${LV_COLORS[i]}"></span>${l}</span>`
+  ).join('');
+
+  document.getElementById('progress-wrap').innerHTML = `
+    <div class="progress-title"><span class="slash">//</span> LEARNING PROGRESS</div>
+    <div id="progress-bar">${groups}</div>
+    <div class="progress-text">
+      <span class="progress-ascii">${ascii} &nbsp;<span style="color:var(--text-dim)">${st.confident}/${total} items confident+</span></span>
+      <div class="progress-legend">${legend}</div>
+    </div>
+  `;
+
+  // Tooltip on progress segments
+  const tip = document.getElementById('tooltip');
+  document.querySelectorAll('.prog-seg').forEach(seg => {
+    seg.addEventListener('mouseenter', e => {
+      const parts = seg.dataset.label.split('\n');
+      tip.innerHTML = `<div class="tt-section">${parts[0] || ''}</div>${parts[1] || ''}`;
+      tip.style.display = 'block';
+    });
+    seg.addEventListener('mousemove', e => {
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top  = (e.clientY - 38) + 'px';
+    });
+    seg.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+    seg.addEventListener('click', () => {
+      const sid = seg.dataset.sid;
+      const iid = seg.dataset.iid;
+      // scroll to and expand that item
+      expanded.add(iid);
+      renderSections();
+      setTimeout(() => {
+        const el = document.getElementById('item-' + iid);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+    });
+  });
+}
+
+function renderSections() {
+  document.getElementById('sections-list').innerHTML =
+    state.sections.map((sec, si) => sectionHTML(sec, si)).join('');
+  attachDrag();
+}
+
+function sectionHTML(sec, si) {
+  const num   = String(si + 1).padStart(2, '0');
+  const done  = sec.items.filter(i => i.level >= 3).length;
+  const total = sec.items.length;
+  const col   = sec.collapsed ? 'collapsed' : '';
+
+  const titleEl = editSec === sec.id
+    ? `<input class="s-title-input" id="sec-inp-${sec.id}"
+              value="${sec.title.replace(/"/g,'&quot;')}"
+              onblur="saveSecTitle('${sec.id}')"
+              onkeydown="secTitleKey(event,'${sec.id}')" />`
+    : `<span class="s-title" onclick="toggleSec('${sec.id}')">${sec.title}</span>`;
+
+  const items = sec.items.map(itm => itemHTML(sec.id, itm)).join('');
+
+  return `
+    <div class="section-card ${col}" id="sec-${sec.id}" data-sid="${sec.id}">
+      <div class="section-header">
+        <span class="s-drag" data-drag-sec="${sec.id}" title="Drag to reorder">⠿</span>
+        <span class="s-num">${num}.</span>
+        ${titleEl}
+        <div class="s-meta">
+          <span class="s-count">[${done}/${total}]</span>
+          <button class="icon-btn" onclick="startEditSec('${sec.id}')" title="Rename section">✎</button>
+          <button class="icon-btn" onclick="addItem('${sec.id}')" title="Add item">＋</button>
+          <button class="icon-btn del" onclick="delSection('${sec.id}')" title="Delete section">✕</button>
+        </div>
+        <span class="s-arrow" onclick="toggleSec('${sec.id}')">▾</span>
+      </div>
+      <div class="section-items">${items}</div>
+    </div>
+  `;
+}
+
+function itemHTML(sid, itm) {
+  const exp   = expanded.has(itm.id) ? 'expanded' : '';
+  const lc    = LV_COLORS[itm.level];
+  const lb    = LV_BG[itm.level];
+
+  const textEl = editItem === itm.id
+    ? `<textarea class="i-text-input" id="itm-inp-${itm.id}"
+                 onblur="saveItemText('${sid}','${itm.id}')"
+                 onkeydown="itemTextKey(event,'${sid}','${itm.id}')"
+                 rows="2">${itm.text.replace(/</g,'&lt;')}</textarea>`
+    : `<span class="i-text">${renderText(itm.text)}</span>`;
+
+  const lvBtns = LEVELS.map((l,li) => {
+    const active = itm.level === li ? 'active' : '';
+    const sty = itm.level === li
+      ? `style="background:${LV_COLORS[li]};border-color:${LV_COLORS[li]};color:#000"`
+      : `style="color:${LV_COLORS[li]};border-color:${LV_COLORS[li]}22"`;
+    return `<button class="lv-btn ${active}" ${sty}
+                    onclick="setLevel('${sid}','${itm.id}',${li})">${l}</button>`;
+  }).join('');
+
+  return `
+    <div class="item-row ${exp}" id="item-${itm.id}" data-iid="${itm.id}" data-sid="${sid}">
+      <div class="item-main" onclick="toggleItem(event,'${itm.id}')">
+        <span class="i-drag" data-drag-item="${itm.id}" data-drag-sid="${sid}" title="Drag to reorder">⠿</span>
+        <span class="i-bullet">▸</span>
+        ${textEl}
+        <span class="i-badge" style="color:${lc};border-color:${lc};background:${lb}">${LEVELS[itm.level]}</span>
+        <span class="i-arrow">›</span>
+      </div>
+      <div class="item-detail">
+        <div class="level-picker">${lvBtns}</div>
+        <div class="notes-lbl"><span class="slash">//</span> notes</div>
+        <textarea class="notes" data-sid="${sid}" data-iid="${itm.id}"
+                  placeholder="// your notes here…"
+                  oninput="schedSave(this,'${sid}','${itm.id}')"
+                  onblur="flushSave(this,'${sid}','${itm.id}')"
+                  onkeydown="notesKeydown(event,this,'${sid}','${itm.id}')">${itm.notes || ''}</textarea>
+        <div class="detail-actions">
+          <button class="icon-btn" onclick="event.stopPropagation();startEditItem('${sid}','${itm.id}')">✎ edit text</button>
+          <button class="icon-btn del" onclick="event.stopPropagation();delItem('${sid}','${itm.id}')">✕ delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// INTERACTIONS
+// ════════════════════════════════════════════════════════════════════════════
+function toggleSec(id) {
+  const sec = state.sections.find(s => s.id === id);
+  if (sec) { sec.collapsed = !sec.collapsed; save(); renderSections(); }
+}
+
+function toggleItem(e, id) {
+  // Don't toggle when the user is selecting text
+  if (window.getSelection().toString().length > 0) return;
+  expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+  renderSections();
+}
+
+function notesKeydown(e, ta, sid, iid) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const s = ta.selectionStart, end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, s) + '    ' + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = s + 4;
+    schedSave(ta, sid, iid);
+  }
+}
+
+function setLevel(sid, iid, lv) {
+  captureNotes();
+  const sec = state.sections.find(s => s.id === sid);
+  if (!sec) return;
+  const itm = sec.items.find(i => i.id === iid);
+  if (itm) { itm.level = lv; save(); render(); }
+}
+
+let _saveTimers = {};
+function schedSave(ta, sid, iid) {
+  const k = sid + iid;
+  clearTimeout(_saveTimers[k]);
+  _saveTimers[k] = setTimeout(() => flushSave(ta, sid, iid), 600);
+}
+
+function flushSave(ta, sid, iid) {
+  const sec = state.sections.find(s => s.id === sid);
+  if (!sec) return;
+  const itm = sec.items.find(i => i.id === iid);
+  if (itm) { itm.notes = ta.value; save(); }
+  // update header stats silently
+  renderHeader();
+}
+
+function startEditSec(id) {
+  editSec = id;
+  renderSections();
+  setTimeout(() => {
+    const inp = document.getElementById('sec-inp-' + id);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 0);
+}
+
+function saveSecTitle(id) {
+  const inp = document.getElementById('sec-inp-' + id);
+  if (inp) {
+    const sec = state.sections.find(s => s.id === id);
+    if (sec && inp.value.trim()) sec.title = inp.value.trim();
+    save();
+  }
+  editSec = null;
+  renderSections();
+}
+
+function secTitleKey(e, id) {
+  if (e.key === 'Enter')  { e.preventDefault(); saveSecTitle(id); }
+  if (e.key === 'Escape') { editSec = null; renderSections(); }
+  e.stopPropagation();
+}
+
+function startEditItem(sid, iid) {
+  captureNotes();
+  editItem = iid;
+  expanded.add(iid);
+  renderSections();
+  setTimeout(() => {
+    const inp = document.getElementById('itm-inp-' + iid);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 0);
+}
+
+function saveItemText(sid, iid) {
+  const inp = document.getElementById('itm-inp-' + iid);
+  if (inp) {
+    const sec = state.sections.find(s => s.id === sid);
+    if (sec) {
+      const itm = sec.items.find(i => i.id === iid);
+      if (itm && inp.value.trim()) itm.text = inp.value.trim();
+      save();
+    }
+  }
+  editItem = null;
+  renderSections();
+}
+
+function itemTextKey(e, sid, iid) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveItemText(sid, iid); }
+  if (e.key === 'Escape')               { editItem = null; renderSections(); }
+}
+
+function addSection() {
+  const n = state.sections.length + 1;
+  const newSec = {
+    id: uid(), title: 'New Section ' + n, collapsed: false,
+    items: [{ id: uid(), text: 'New item — click ✎ edit text to rename', level: 0, notes: '' }]
+  };
+  state.sections.push(newSec);
+  save(); render();
+  setTimeout(() => startEditSec(newSec.id), 60);
+}
+
+function delSection(id) {
+  showConfirm('Delete this entire section and all its items?', () => {
+    state.sections = state.sections.filter(s => s.id !== id);
+    save(); render();
+  });
+}
+
+function addItem(sid) {
+  captureNotes();
+  const sec = state.sections.find(s => s.id === sid);
+  if (!sec) return;
+  const newItm = { id: uid(), text: 'New item — click ✎ edit text to rename', level: 0, notes: '' };
+  sec.items.push(newItm);
+  expanded.add(newItm.id);
+  save(); render();
+  setTimeout(() => startEditItem(sid, newItm.id), 60);
+}
+
+function delItem(sid, iid) {
+  captureNotes();
+  showConfirm('Delete this item?', () => {
+    const sec = state.sections.find(s => s.id === sid);
+    if (sec) { sec.items = sec.items.filter(i => i.id !== iid); expanded.delete(iid); }
+    save(); render();
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// DRAG & DROP
+// ════════════════════════════════════════════════════════════════════════════
+function attachDrag() {
+  // ─── Section drag ─────────────────────────────────────────────────────
+  document.querySelectorAll('[data-drag-sec]').forEach(handle => {
+    handle.addEventListener('mousedown', () => { handle.closest('.section-card').setAttribute('draggable','true'); });
+    handle.addEventListener('mouseup',   () => { handle.closest('.section-card').removeAttribute('draggable'); });
+  });
+
+  document.querySelectorAll('.section-card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      if (!card.getAttribute('draggable')) return e.preventDefault();
+      dragInfo = { type: 'section', id: card.dataset.sid };
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.dataset.sid);
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging','drag-target');
+      card.removeAttribute('draggable');
+      document.querySelectorAll('.section-card.drag-target').forEach(x => x.classList.remove('drag-target'));
+      dragInfo = null;
+    });
+    card.addEventListener('dragover', e => {
+      if (!dragInfo || dragInfo.type !== 'section') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.section-card.drag-target').forEach(x => x.classList.remove('drag-target'));
+      if (card.dataset.sid !== dragInfo.id) card.classList.add('drag-target');
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('drag-target'));
+    card.addEventListener('drop', e => {
+      if (!dragInfo || dragInfo.type !== 'section') return;
+      e.preventDefault(); e.stopPropagation();
+      const fromId = dragInfo.id;
+      const toId   = card.dataset.sid;
+      if (fromId === toId) return;
+      const fi = state.sections.findIndex(s => s.id === fromId);
+      const ti = state.sections.findIndex(s => s.id === toId);
+      const [removed] = state.sections.splice(fi, 1);
+      state.sections.splice(ti, 0, removed);
+      save(); render();
+    });
+  });
+
+  // ─── Item drag ────────────────────────────────────────────────────────
+  document.querySelectorAll('[data-drag-item]').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.stopPropagation();
+      const row = handle.closest('.item-row');
+      if (row) row.setAttribute('draggable','true');
+    });
+    handle.addEventListener('mouseup', () => {
+      const row = handle.closest('.item-row');
+      if (row) row.removeAttribute('draggable');
+    });
+  });
+
+  document.querySelectorAll('.item-row').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      if (!row.getAttribute('draggable')) return e.preventDefault();
+      dragInfo = { type: 'item', id: row.dataset.iid, sectionId: row.dataset.sid };
+      row.classList.add('item-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', row.dataset.iid);
+      e.stopPropagation();
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('item-dragging','drop-above');
+      row.removeAttribute('draggable');
+      document.querySelectorAll('.item-row.drop-above').forEach(x => x.classList.remove('drop-above'));
+      dragInfo = null;
+    });
+    row.addEventListener('dragover', e => {
+      if (!dragInfo || dragInfo.type !== 'item') return;
+      e.preventDefault(); e.stopPropagation();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.item-row.drop-above').forEach(x => x.classList.remove('drop-above'));
+      if (row.dataset.iid !== dragInfo.id) row.classList.add('drop-above');
+    });
+    row.addEventListener('dragleave', () => row.classList.remove('drop-above'));
+    row.addEventListener('drop', e => {
+      if (!dragInfo || dragInfo.type !== 'item') return;
+      e.preventDefault(); e.stopPropagation();
+      captureNotes();
+      const fromSid = dragInfo.sectionId;
+      const fromIid = dragInfo.id;
+      const toSid   = row.dataset.sid;
+      const toIid   = row.dataset.iid;
+      if (fromIid === toIid) return;
+      const fromSec = state.sections.find(s => s.id === fromSid);
+      const toSec   = state.sections.find(s => s.id === toSid);
+      if (!fromSec || !toSec) return;
+      const fi = fromSec.items.findIndex(i => i.id === fromIid);
+      const ti = toSec.items.findIndex(i => i.id === toIid);
+      const [moved] = fromSec.items.splice(fi, 1);
+      toSec.items.splice(ti, 0, moved);
+      save(); render();
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════════════════════════════
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'swift-tracker-backup.json';
+  a.click();
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json,application/json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!data.sections) throw new Error('Invalid format');
+        state = data;
+        save(); render();
+      } catch(_) {
+        alert('Could not parse JSON backup file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function resetData() {
+  showConfirm('Reset everything back to defaults? All your progress and notes will be lost.', () => {
+    state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    expanded.clear();
+    save(); render();
+  });
+}
+
+// ─── Minimal confirm modal (no ugly browser dialog) ───────────────────────
+function showConfirm(msg, onYes) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Confirm</h3>
+      <p>${msg}</p>
+      <div class="modal-btns">
+        <button class="btn-sm" id="mc-no">Cancel</button>
+        <button class="btn-sm danger" id="mc-yes">Confirm</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#mc-no').onclick  = () => document.body.removeChild(overlay);
+  overlay.querySelector('#mc-yes').onclick = () => { document.body.removeChild(overlay); onYes(); };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
