@@ -653,6 +653,18 @@ const DEFAULT_DATA = { sections: [
     item('`async` / `await` and structured concurrency (`Task`, `TaskGroup`, actors)'),
     item('Swift Package Manager (SPM): adding dependencies via Xcode (`File > Add Package Dependencies`), `Package.swift` for library projects, versioning rules (exact, range, branch)'),
   ]},
+  { id: uid(), title: 'Swift 6 Concurrency', collapsed: false, items: [
+    item('`@MainActor`: constrains a type or function to run on the main thread; annotate ViewModels and UI-touching code'),
+    item('`Sendable`: protocol marking a type safe to pass across concurrency domains; value types are implicitly `Sendable`'),
+    item('`actor`: reference type with compiler-enforced mutual exclusion; replaces manual locking'),
+    item('`async let`: structured parallel tasks — `async let a = fetchA(); async let b = fetchB(); let result = try await (a, b)`'),
+    item('`TaskGroup` / `withThrowingTaskGroup`: dynamic structured concurrency for a variable number of child tasks'),
+    item('Actor isolation rules: methods inside an actor are isolated by default; calling them from outside requires `await`'),
+    item('`nonisolated`: opt a method out of actor isolation when it only accesses `Sendable` state'),
+    item('Swift 6 strict concurrency: compiler enforces data-race safety at compile time — errors where Swift 5 only warned'),
+    item('Incremental migration: use `@preconcurrency import` and `nonisolated(unsafe)` to adopt Swift 6 gradually'),
+    item('Canonical reference: Swift 6 migration guide on swift.org'),
+  ]},
   { id: uid(), title: 'SwiftUI – UI Fundamentals', collapsed: false, items: [
     item('Declarative syntax: `View` protocol, `body` property'),
     item('Common views: `Text`, `Image`, `Button`, `TextField`, `Toggle`, `List`'),
@@ -684,6 +696,13 @@ const DEFAULT_DATA = { sections: [
     item('Model – plain data types (`Codable` structs)'),
     item('Keep Views thin; business logic lives in ViewModel'),
     item('Dependency injection via init or `@Environment`'),
+  ]},
+  { id: uid(), title: 'Layered Modular SPM Architecture', collapsed: false, items: [
+    item('Pattern: split a feature into three SPM packages — Core (models), Feature (use case / view model), App (SwiftUI view wiring)'),
+    item('Core layer: pure model types, zero framework dependencies; importable by any layer'),
+    item('Feature layer: depends on Core; owns use cases, business logic, and `@Observable` / `ObservableObject` view models'),
+    item('App layer: imports Feature, owns SwiftUI views, performs dependency injection at the root'),
+    item('Package names mirror feature names — learn to navigate large codebases by recognising the Core / Feature / App suffix pattern'),
   ]},
   { id: uid(), title: 'Networking', collapsed: false, items: [
     item('`URLSession` async/await: `let (data, response) = try await URLSession.shared.data(from: url)`'),
@@ -721,6 +740,58 @@ const DEFAULT_DATA = { sections: [
     item('Background URL sessions (`URLSessionConfiguration.background`)'),
     item('Significant location change monitoring (low-power background location)'),
     item('Constraints: iOS aggressively manages background execution; keep tasks short'),
+  ]},
+  { id: uid(), title: 'MVVM + Combine', collapsed: false, items: [
+    item('`@Published` property wrapper: wraps a value and emits changes as a `Publisher`'),
+    item('`.sink(receiveValue:)`: subscribe to a publisher and handle emitted values; returns `AnyCancellable`'),
+    item('`.assign(to:on:)`: bind a publisher\'s output directly to a key path on an object'),
+    item('`AnyCancellable`: token returned by subscriptions; cancels the subscription when deallocated — store in a `Set<AnyCancellable>` on the ViewModel'),
+    item('Pattern: ViewModel owns `@Published` state → View subscribes via `.onReceive` or Combine chains → UI updates reactively'),
+    item('C# analogy: `@Published` ≈ `INotifyPropertyChanged`; Combine pipelines ≈ Rx.NET observable chains'),
+    item('`.map`, `.filter`, `.combineLatest`, `.debounce` — core operators for transforming publisher streams'),
+    item('Avoid retain cycles in `.sink`: use `[weak self]` capture lists'),
+  ]},
+  { id: uid(), title: 'RxSwift Basics (read-level fluency)', collapsed: false, items: [
+    item('`Observable<T>`: core type that emits a sequence of values, an error, or completion'),
+    item('`BehaviorRelay<T>`: hot observable that replays its latest value to new subscribers; never errors'),
+    item('`disposeBag`: holds `Disposable` tokens; subscriptions cancelled when the bag is deallocated'),
+    item('`flatMap`: transforms each emitted element into a new Observable and merges the results'),
+    item('`withLatestFrom`: combines two observables, emitting the latest value of the second when the first fires'),
+    item('Goal: read and follow legacy RxSwift code; use Combine/Swift Concurrency for new code'),
+    item('RxSwift → Combine cheat sheets map operators 1-to-1 — bookmark one for reference'),
+  ]},
+  { id: uid(), title: 'OpenAPI 3 Spec', collapsed: false, items: [
+    item('Top-level structure: `openapi`, `info`, `servers`, `paths`, `components`'),
+    item('`paths`: each key is a URL path; nested keys are HTTP methods (`get`, `post`, etc.)'),
+    item('`requestBody` and `responses`: describe content type (`application/json`) and schema'),
+    item('`components/schemas`: reusable type definitions referenced with `$ref`'),
+    item('`parameters`: path, query, header, cookie params with type and required flag'),
+    item('Read a real spec end-to-end before writing one — familiarity with the structure removes the intimidation'),
+    item('C# analogy: OpenAPI spec ≈ Swashbuckle/NSwag output in ASP.NET; same concepts, different authoring direction'),
+  ]},
+  { id: uid(), title: 'Router + Protocol Extension Pattern', collapsed: false, items: [
+    item('Problem: a single Router class accumulates routing logic and becomes a god object'),
+    item('Solution: define each routing capability as its own protocol (e.g. `ShowCartProtocol`, `ShowCheckoutProtocol`)'),
+    item('Router class declares conformance; each protocol is implemented in a separate `extension` file'),
+    item('Keeps individual files small and focused; new capabilities are additive, not invasive'),
+    item('Practice: write a `Router` class and split 3–4 capabilities across separate protocol extension files'),
+    item('Navigation methods on the protocol become the public API for that flow — callers depend on the protocol, not the concrete Router'),
+  ]},
+  { id: uid(), title: 'Branch SDK – Deep Linking Basics', collapsed: false, items: [
+    item('Branch handles both standard deep links (app installed) and deferred deep links (app not yet installed)'),
+    item('Deferred deep link flow: user taps link → App Store → installs app → Branch delivers the original link params on first launch'),
+    item('iOS integration: initialise Branch in `AppDelegate`/`App` struct; handle incoming params in the session callback'),
+    item('Universal Links: Branch generates an `apple-app-site-association` file so iOS opens the app directly without a browser hop'),
+    item('Link params (e.g. gift card ID, recipient token) arrive as a `[String: AnyObject]` dictionary in the callback'),
+    item('Skim the Branch iOS quickstart to understand the initialisation and link-handling lifecycle'),
+  ]},
+  { id: uid(), title: 'Fastlane + GitLab CI Basics', collapsed: false, items: [
+    item('`Fastfile`: defines lanes (e.g. `test`, `beta`, `release`); each lane is a sequence of Fastlane actions'),
+    item('Common actions: `scan` (run tests), `gym` (build `.ipa`), `pilot` (upload to TestFlight), `match` (code signing)'),
+    item('`.gitlab-ci.yml`: defines pipeline stages, jobs, runners, and when each job triggers (branch rules, tags)'),
+    item('Typical mobile pipeline: lint → unit tests → build → upload to TestFlight → notify'),
+    item('`match` (code signing): stores certificates and profiles in a git repo; all CI machines share the same signing identity'),
+    item('Goal for day one: read a failing CI job log, identify the failing lane/action, and know where to look to fix it'),
   ]},
 ]};
 
@@ -1263,8 +1334,24 @@ function showConfirm(msg, onYes) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// MIGRATION — adds new default sections without touching existing progress
+// ════════════════════════════════════════════════════════════════════════════
+function migrate() {
+  const existingTitles = new Set(state.sections.map(s => s.title));
+  let changed = false;
+  DEFAULT_DATA.sections.forEach(defSec => {
+    if (!existingTitles.has(defSec.title)) {
+      state.sections.push(JSON.parse(JSON.stringify(defSec)));
+      changed = true;
+    }
+  });
+  if (changed) save();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════════════════════
+migrate();
 render();
 </script>
 </body>
