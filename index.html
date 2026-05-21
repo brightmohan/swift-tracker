@@ -440,10 +440,36 @@
       line-height: 1.55;
       padding: 4px 8px;
       outline: none;
-      resize: vertical;
+      resize: none;
       min-height: 38px;
       box-shadow: 0 0 10px rgba(0,204,255,0.1);
+      display: block;
+      width: 100%;
     }
+
+    .ta-wrap {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .ta-resize-handle {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 14px;
+      height: 14px;
+      cursor: nwse-resize;
+      clip-path: polygon(100% 0, 100% 100%, 0 100%);
+      background-image: radial-gradient(circle, var(--text-dim) 1px, transparent 1px);
+      background-size: 4px 4px;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+      user-select: none;
+    }
+
+    .ta-resize-handle:hover { opacity: 1; background-image: radial-gradient(circle, var(--cyan) 1px, transparent 1px); }
 
     .i-badge {
       flex-shrink: 0;
@@ -527,7 +553,7 @@
       font-size: 12px;
       line-height: 1.65;
       padding: 9px 11px;
-      resize: vertical;
+      resize: none;
       min-height: 72px;
       outline: none;
       transition: border-color 0.15s, box-shadow 0.15s;
@@ -943,6 +969,27 @@ function renderSections() {
   document.getElementById('sections-list').innerHTML =
     state.sections.map((sec, si) => sectionHTML(sec, si)).join('');
   attachDrag();
+  bindResizeHandles();
+}
+
+function bindResizeHandles() {
+  document.querySelectorAll('.ta-resize-handle').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const ta = handle.closest('.ta-wrap').querySelector('textarea');
+      const startY = e.clientY;
+      const startH = ta.offsetHeight;
+      function onMove(e) {
+        ta.style.height = Math.max(startH + e.clientY - startY, 40) + 'px';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
 }
 
 function sectionHTML(sec, si) {
@@ -985,10 +1032,10 @@ function itemHTML(sid, itm) {
   const lb    = LV_BG[itm.level];
 
   const textEl = editItem === itm.id
-    ? `<textarea class="i-text-input" id="itm-inp-${itm.id}"
+    ? `<div class="ta-wrap"><textarea class="i-text-input" id="itm-inp-${itm.id}"
                  onblur="saveItemText('${sid}','${itm.id}')"
                  onkeydown="itemTextKey(event,'${sid}','${itm.id}')"
-                 rows="2">${itm.text.replace(/</g,'&lt;')}</textarea>`
+                 rows="2">${itm.text.replace(/</g,'&lt;')}</textarea><div class="ta-resize-handle"></div></div>`
     : `<span class="i-text">${renderText(itm.text)}</span>`;
 
   const lvBtns = LEVELS.map((l,li) => {
@@ -1012,11 +1059,11 @@ function itemHTML(sid, itm) {
       <div class="item-detail">
         <div class="level-picker">${lvBtns}</div>
         <div class="notes-lbl"><span class="slash">//</span> notes</div>
-        <textarea class="notes" data-sid="${sid}" data-iid="${itm.id}"
+        <div class="ta-wrap"><textarea class="notes" data-sid="${sid}" data-iid="${itm.id}"
                   placeholder="// your notes here…"
                   oninput="schedSave(this,'${sid}','${itm.id}')"
                   onblur="flushSave(this,'${sid}','${itm.id}')"
-                  onkeydown="notesKeydown(event,this,'${sid}','${itm.id}')">${itm.notes || ''}</textarea>
+                  onkeydown="notesKeydown(event,this,'${sid}','${itm.id}')">${itm.notes || ''}</textarea><div class="ta-resize-handle"></div></div>
         <div class="detail-actions">
           <button class="icon-btn" onclick="event.stopPropagation();startEditItem('${sid}','${itm.id}')">✎ edit text</button>
           <button class="icon-btn del" onclick="event.stopPropagation();delItem('${sid}','${itm.id}')">✕ delete</button>
