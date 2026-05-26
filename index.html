@@ -636,6 +636,45 @@
     .modal p { color: var(--text-dim); font-size: 12px; margin-bottom: 16px; line-height: 1.6; }
     .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import {
+      getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  
+    // ── PASTE YOUR firebaseConfig BELOW ────────────────────────────────
+    const firebaseConfig = {
+      apiKey: "AIza...REPLACE_ME...",
+      authDomain: "REPLACE_ME.firebaseapp.com",
+      projectId: "REPLACE_ME",
+      storageBucket: "REPLACE_ME.appspot.com",
+      messagingSenderId: "REPLACE_ME",
+      appId: "REPLACE_ME"
+    };
+    // ───────────────────────────────────────────────────────────────────
+  
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+  
+    // Expose to the global (non-module) script below
+    window.fb = {
+      signIn:  () => signInWithPopup(auth, provider),
+      signOut: () => signOut(auth),
+      onAuth:  (cb) => onAuthStateChanged(auth, cb),
+      loadDoc: async (uid) => {
+        const snap = await getDoc(doc(db, "trackers", uid));
+        return snap.exists() ? snap.data() : null;
+      },
+      saveDoc: (uid, data) => setDoc(doc(db, "trackers", uid), data),
+    };
+  
+    window.dispatchEvent(new Event('fb-ready'));
+  </script>
 </head>
 <body>
 
@@ -830,7 +869,13 @@ let editSec   = null;        // section id being inline-edited
 let editItem  = null;        // item id being inline-edited
 let dragInfo  = null;        // { type: 'section'|'item', id, sectionId? }
 
+// ── AUTH + SYNC ──────────────────────────────────────────────────────
+let currentUser = null;          // Firebase user object once signed in
+let cloudReady  = false;         // true after first successful cloud load
+let saveTimer   = null;
+
 function loadState() {
+  // Always start from localStorage cache (offline-safe, instant render).
   try {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) return JSON.parse(s);
@@ -839,8 +884,60 @@ function loadState() {
 }
 
 function save() {
+  // Always write localStorage first — never lose data to a network hiccup.
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+  // Debounced cloud write (only once signed in and after first load).
+  if (currentUser && cloudReady && window.fb) {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      window.fb.saveDoc(currentUser.uid, state)
+        .catch(err => console.warn('Cloud save failed (kept local):', err));
+    }, 800);
+  }
 }
+
+async function pullFromCloud(user) {
+  try {
+    const cloud = await window.fb.loadDoc(user.uid);
+    if (cloud && cloud.sections && cloud.sections.length) {
+      state = cloud;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      render();
+    } else {
+      // No cloud data yet — push current local state up as the first save.
+      await window.fb.saveDoc(user.uid, state);
+    }
+    cloudReady = true;
+    renderHeader(); // refresh auth UI
+  } catch (err) {
+    console.warn('Cloud load failed (using local only):', err);
+    cloudReady = false;
+  }
+}
+
+window.addEventListener('fb-ready', () => {
+  window.fb.onAuth(async (user) => {
+    currentUser = user;
+    cloudReady  = false;
+    if (user) {
+      await pullFromCloud(user);
+    } else {
+      renderHeader();
+    }
+  });
+});
+
+window.signInGoogle = async function() {
+  try { await window.fb.signIn(); }
+  catch (err) { alert('Sign-in failed: ' + err.message); }
+};
+window.signOutGoogle = async function() {
+  await window.fb.signOut();
+  currentUser = null;
+  cloudReady  = false;
+  renderHeader();
+};
 
 function stats() {
   const all   = state.sections.flatMap(s => s.items);
@@ -899,11 +996,15 @@ function renderHeader() {
         <span>COMPLETE&nbsp;<span class="stat-val" style="color:${pctColor}">${st.pct}%</span></span>
       </div>
     </div>
-    <div class="header-actions">
-      <button class="btn-sm" onclick="exportJSON()" title="Export data as JSON">↓ export</button>
-      <button class="btn-sm" onclick="importJSON()" title="Import JSON backup">↑ import</button>
-      <button class="btn-sm danger" onclick="resetData()" title="Reset everything to defaults">⟳ reset</button>
-    </div>
+<div class="header-actions">
+  ${currentUser
+    ? `<button class="btn-sm" onclick="signOutGoogle()" title="${currentUser.email} — click to sign out">☁ ${cloudReady ? 'synced' : 'connecting…'}</button>`
+    : `<button class="btn-sm" onclick="signInGoogle()" title="Sign in to sync across devices">☁ sign in</button>`
+  }
+  <button class="btn-sm" onclick="exportJSON()" title="Export data as JSON">↓ export</button>
+  <button class="btn-sm" onclick="importJSON()" title="Import JSON backup">↑ import</button>
+  <button class="btn-sm danger" onclick="resetData()" title="Reset everything to defaults">⟳ reset</button>
+</div>
   `;
 }
 
